@@ -1,0 +1,285 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: 'Trebuchet MS', 'Segoe UI', 'Nunito', sans-serif;
+  color: #4b2f46;
+  background: linear-gradient(180deg, #fff6fb 0%, #fff0f7 100%);
+}
+
+body {
+  margin: 0;
+  color: #4b2f46;
+  background: linear-gradient(180deg, #fff6fb 0%, #fff0f7 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.75rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #9d2f6f;
+  letter-spacing: 0.02em;
+}
+
+.header p {
+  margin: 0.25rem 0 0;
+  color: #7c4b70;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1.25rem 0;
+}
+
+.tabs a {
+  min-width: 7.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  color: #7a3d63;
+  background: #ffe5f1;
+  padding: 0.85rem 0.6rem;
+  border-radius: 0.9rem;
+  font-size: 0.9rem;
+  border: 1px solid #ffd0e7;
+  transition: transform 0.15s ease;
+}
+
+.tabs a:hover {
+  transform: translateY(-1px);
+}
+
+.tabs a.active {
+  background: #e95ca5;
+  color: #fff;
+  border-color: #e95ca5;
+}
+
+.content {
+  padding-bottom: 2rem;
+}
+
+.stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 0.95rem;
+  border: 1px solid #ffd8eb;
+  box-shadow: 0 8px 20px rgba(233, 92, 165, 0.08);
+}
+
+.card h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  color: #8b2f63;
+}
+
+.emphasis strong {
+  font-size: 1.45rem;
+}
+
+.warning {
+  border-color: #f7a8c9;
+  background: #fff4f9;
+}
+
+.success {
+  border-color: #b387ff;
+  background: #f8f1ff;
+}
+
+.card-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+input,
+select,
+button {
+  width: 100%;
+  border: 1px solid #f2bfd8;
+  border-radius: 0.75rem;
+  padding: 0.65rem;
+  font-size: 0.95rem;
+  color: #5d3352;
+  background: #fffafd;
+}
+
+button {
+  background: #e95ca5;
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+.danger {
+  background: #d64b7f;
+}
+
+.plain-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.plain-list li {
+  border: 1px solid #ffd8eb;
+  border-radius: 0.85rem;
+  padding: 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+  background: #fffafd;
+}
+
+.plain-list li div {
+  display: grid;
+}
+
+small {
+  color: #8a5d79;
+}
+
+.row-actions {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: end;
+}
+
+.edit-grid {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.row-actions-left {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.inline-total {
+  border: 1px dashed #e895be;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  background: #fff1f9;
+}
+
+.ingredient-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ingredient-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ingredient-row span {
+  font-size: 0.9rem;
+  color: #7a3d63;
+}
+
+.projection-grid {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.highlight-profit {
+  border: 1px solid #f29cc9;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  background: linear-gradient(180deg, #fff3fa 0%, #ffeaf6 100%);
+}
+
+.profit-value {
+  color: #b43b7d;
+  font-size: 1.1rem;
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+  }
+
+  .tabs a {
+    font-size: 0.9rem;
+  }
+
+  .card-group {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .app-shell {
+    padding: 0.75rem 0.75rem 6.2rem;
+  }
+
+  .tabs {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 20;
+    margin: 0;
+    gap: 0.4rem;
+    padding: 0.45rem;
+    border-radius: 1rem;
+    background: rgba(255, 245, 251, 0.96);
+    border: 1px solid #f5b7d8;
+    box-shadow: 0 8px 24px rgba(209, 77, 143, 0.18);
+    backdrop-filter: blur(6px);
+  }
+
+  .tabs a {
+    min-width: 0;
+    flex: 1;
+    padding: 0.62rem 0.3rem;
+    font-size: 0.76rem;
+    line-height: 1.1;
+    border-radius: 0.7rem;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .content {
+    padding-bottom: 0.5rem;
+  }
+}
