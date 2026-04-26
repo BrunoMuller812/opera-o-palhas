@@ -193,6 +193,10 @@ small {
   gap: 0.45rem;
 }
 
+.finance-date-input {
+  min-width: 0;
+}
+
 .inline-total {
   border: 1px dashed #e895be;
   border-radius: 0.75rem;
@@ -353,6 +357,20 @@ small {
 
   .content {
     padding-bottom: 0.5rem;
+  }
+
+  .finance-date-input {
+    font-size: 0.8rem;
+    padding-inline: 0.45rem;
+    line-height: 1.1;
+  }
+
+  .finance-date-input::-webkit-date-and-time-value {
+    text-align: left;
+  }
+
+  .finance-date-input::-webkit-datetime-edit {
+    padding: 0;
   }
 
   .recipe-card-item {

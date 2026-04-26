@@ -691,7 +691,12 @@ function FinancePage({
       <article className="card">
         <h2>Novo lançamento</h2>
         <form className="form-grid" onSubmit={saveEntry}>
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          <input
+            type="date"
+            className="finance-date-input"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+          />
           <select value={type} onChange={(event) => setType(event.target.value as CashEntryType)}>
             {cashTypeOptions.map((option) => (
               <option key={option} value={option}>
@@ -762,7 +767,12 @@ function FinancePage({
       <article className="card">
         <h2>Lançamentos</h2>
         <div className="row-actions-left">
-          <input type="date" value={filterDate} onChange={(event) => setFilterDate(event.target.value)} />
+          <input
+            type="date"
+            className="finance-date-input"
+            value={filterDate}
+            onChange={(event) => setFilterDate(event.target.value)}
+          />
           <button type="button" onClick={downloadCsv}>
             Baixar planilha (.csv)
           </button>
