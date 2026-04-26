@@ -22,6 +22,9 @@ export interface Recipe {
   name: string
   items: RecipeItem[]
   yieldCount?: number
+  producedCount?: number
+  soldCount?: number
+  availableCount?: number
   totalCost: number
   costPerUnit?: number
   salePricePerUnit?: number
@@ -37,4 +40,5 @@ export interface CashEntry {
   description: string
   value: number
   recipeTag?: string
+  soldQuantity?: number
 }

@@ -178,6 +178,10 @@ small {
   justify-items: end;
 }
 
+.row-actions button {
+  width: auto;
+}
+
 .edit-grid {
   display: grid;
   gap: 0.45rem;
@@ -217,6 +221,64 @@ small {
   margin-top: 0.4rem;
 }
 
+.recipe-list {
+  gap: 0.8rem;
+}
+
+.recipe-card-item {
+  align-items: stretch !important;
+}
+
+.recipe-main {
+  width: 100%;
+  gap: 0.35rem;
+}
+
+.recipe-stock-panel {
+  border: 1px solid #f3bdd8;
+  border-radius: 0.75rem;
+  background: #fff8fc;
+  padding: 0.55rem;
+  margin-top: 0.2rem;
+}
+
+.recipe-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.recipe-stock-grid div {
+  text-align: center;
+  background: #ffeefa;
+  border-radius: 0.55rem;
+  padding: 0.35rem;
+}
+
+.recipe-stock-grid strong {
+  font-size: 1.05rem;
+  color: #9d2f6f;
+}
+
+.recipe-stock-track {
+  margin-top: 0.5rem;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #f9d8ea;
+  overflow: hidden;
+}
+
+.recipe-stock-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ef5ca8 0%, #b16df0 100%);
+}
+
+.price-editor-row {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .highlight-profit {
   border: 1px solid #f29cc9;
   border-radius: 0.75rem;
@@ -244,6 +306,16 @@ small {
 
   .card-group {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .price-editor-row {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .price-editor-row button {
+    width: auto;
+    min-width: 8.5rem;
   }
 }
 
@@ -281,5 +353,42 @@ small {
 
   .content {
     padding-bottom: 0.5rem;
+  }
+
+  .recipe-card-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.7rem;
+  }
+
+  .recipe-main {
+    width: 100%;
+  }
+
+  .recipe-card-item .row-actions {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .recipe-card-item .row-actions span {
+    font-weight: 600;
+    color: #8b2f63;
+  }
+
+  .recipe-card-item .row-actions button {
+    width: auto;
+    min-width: 5.5rem;
+    padding-inline: 0.85rem;
+  }
+
+  .recipe-stock-grid {
+    gap: 0.45rem;
+  }
+
+  .recipe-stock-grid strong {
+    font-size: 1rem;
   }
 }

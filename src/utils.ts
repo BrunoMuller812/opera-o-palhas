@@ -26,28 +26,6 @@ export const calcRecipeTotal = (items: RecipeItem[], ingredients: Ingredient[]) 
     return sum + ingredient.unitCost * item.quantityUsed
   }, 0)
 
-export const calcFinancialSummary = (entries: CashEntry[]) => {
-  const entrada = entries
-    .filter((entry) => entry.type === 'entrada')
-    .reduce((sum, entry) => sum + entry.value, 0)
-  const saida = entries
-    .filter((entry) => entry.type === 'saida' || entry.type === 'sangria')
-    .reduce((sum, entry) => sum + entry.value, 0)
-  const saldoDisponivel = entrada - saida
-  const totalGuardar = entries
-    .filter((entry) => entry.type === 'entrada')
-    .reduce((sum, entry) => sum + Math.min(RESERVA_FIXA, entry.value), 0)
-  const lucroLiquido = saldoDisponivel - totalGuardar
-
-  return {
-    entrada,
-    saida,
-    saldoDisponivel,
-    totalGuardar,
-    lucroLiquido,
-  }
-}
-
 export const calcRecipeProjection = (recipe: Recipe) => {
   const salePricePerUnit = recipe.salePricePerUnit ?? 0
   const units = recipe.yieldCount && recipe.yieldCount > 0 ? recipe.yieldCount : 1
@@ -62,22 +40,59 @@ export const calcRecipeProjection = (recipe: Recipe) => {
   }
 }
 
-export const calcSalesByRecipeSummary = (entries: CashEntry[], recipes: Recipe[]) => {
-  const salesEntries = entries.filter((entry) => entry.type === 'entrada' && entry.recipeTag?.trim())
-  const receitaRealizada = salesEntries.reduce((sum, entry) => sum + entry.value, 0)
-  const descontoOperacional = salesEntries.length * RESERVA_FIXA
-  const lucroRealizado = receitaRealizada - descontoOperacional
-  const totalGuardar = salesEntries.reduce((sum, entry) => {
-    const recipe = recipes.find((item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase())
-    const recipeCost = recipe?.totalCost ?? 0
-    return sum + recipeCost + RESERVA_FIXA
+export const getRecipeProducedCount = (recipe: Recipe) =>
+  recipe.producedCount ?? recipe.yieldCount ?? 0
+
+export const getRecipeSoldCount = (recipe: Recipe) => recipe.soldCount ?? 0
+
+export const getRecipeAvailableCount = (recipe: Recipe) => {
+  if (typeof recipe.availableCount === 'number') return recipe.availableCount
+  return Math.max(getRecipeProducedCount(recipe) - getRecipeSoldCount(recipe), 0)
+}
+
+const resolveRecipeUnitCost = (recipe: Recipe) => {
+  if (typeof recipe.costPerUnit === 'number' && recipe.costPerUnit > 0) return recipe.costPerUnit
+  const produced = getRecipeProducedCount(recipe)
+  if (produced <= 0) return 0
+  return recipe.totalCost / produced
+}
+
+export const calcFinancialSummary = (entries: CashEntry[], recipes: Recipe[]) => {
+  const entrada = entries
+    .filter((entry) => entry.type === 'entrada')
+    .reduce((sum, entry) => sum + entry.value, 0)
+  const saida = entries
+    .filter((entry) => entry.type === 'saida' || entry.type === 'sangria')
+    .reduce((sum, entry) => sum + entry.value, 0)
+  const saldoDisponivel = entrada - saida
+
+  const totalGuardar = entries
+    .filter((entry) => entry.type === 'entrada' && entry.recipeTag?.trim())
+    .reduce((sum, entry) => {
+      const quantity = entry.soldQuantity ?? 0
+      const recipe = recipes.find(
+        (item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase(),
+      )
+      const unitCost = recipe ? resolveRecipeUnitCost(recipe) : 0
+      return sum + unitCost * quantity + RESERVA_FIXA
+    }, 0)
+
+  const lucroLiquido = entries.reduce((sum, entry) => {
+    if (entry.type !== 'entrada' || !entry.recipeTag?.trim()) return sum
+    const quantity = entry.soldQuantity ?? 0
+    const recipe = recipes.find(
+      (item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase(),
+    )
+    const unitCost = recipe ? resolveRecipeUnitCost(recipe) : 0
+    const guardar = unitCost * quantity + RESERVA_FIXA
+    return sum + (entry.value - guardar)
   }, 0)
 
   return {
-    totalVendasMarcadas: salesEntries.length,
-    receitaRealizada,
-    descontoOperacional,
-    lucroRealizado,
+    entrada,
+    saida,
+    saldoDisponivel,
     totalGuardar,
+    lucroLiquido,
   }
 }

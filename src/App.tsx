@@ -8,6 +8,9 @@ import {
   calcRecipeTotal,
   calcUnitCost,
   formatBRL,
+  getRecipeAvailableCount,
+  getRecipeProducedCount,
+  getRecipeSoldCount,
   toNumber,
 } from './utils'
 
@@ -22,7 +25,10 @@ function App() {
   const [cashEntries, setCashEntries] = useLocalStorageState<CashEntry[]>('palhas.cash', [])
   const [businessName] = useLocalStorageState<string>('palhas.businessName', 'Palhas da Luana')
 
-  const financialSummary = useMemo(() => calcFinancialSummary(cashEntries), [cashEntries])
+  const financialSummary = useMemo(
+    () => calcFinancialSummary(cashEntries, recipes),
+    [cashEntries, recipes],
+  )
 
   return (
     <div className="app-shell">
@@ -66,6 +72,7 @@ function App() {
                 setCashEntries={setCashEntries}
                 financialSummary={financialSummary}
                 recipes={recipes}
+                setRecipes={setRecipes}
               />
             }
           />
@@ -125,11 +132,17 @@ function IngredientsPage({
   ingredients: Ingredient[]
   setIngredients: React.Dispatch<React.SetStateAction<Ingredient[]>>
 }) {
-  const [name, setName] = useState('')
-  const [unit, setUnit] = useState<UnitType>('g')
-  const [purchaseCost, setPurchaseCost] = useState('')
-  const [purchaseQuantity, setPurchaseQuantity] = useState('')
-  const [search, setSearch] = useState('')
+  const [name, setName] = useLocalStorageState<string>('palhas.draft.ingredients.name', '')
+  const [unit, setUnit] = useLocalStorageState<UnitType>('palhas.draft.ingredients.unit', 'g')
+  const [purchaseCost, setPurchaseCost] = useLocalStorageState<string>(
+    'palhas.draft.ingredients.purchaseCost',
+    '',
+  )
+  const [purchaseQuantity, setPurchaseQuantity] = useLocalStorageState<string>(
+    'palhas.draft.ingredients.purchaseQuantity',
+    '',
+  )
+  const [search, setSearch] = useLocalStorageState<string>('palhas.draft.ingredients.search', '')
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editUnit, setEditUnit] = useState<UnitType>('g')
@@ -302,9 +315,16 @@ function RecipesPage({
   recipes: Recipe[]
   setRecipes: React.Dispatch<React.SetStateAction<Recipe[]>>
 }) {
-  const [name, setName] = useState('')
-  const [yieldCount, setYieldCount] = useState('')
-  const [ingredientQuantities, setIngredientQuantities] = useState<Record<string, string>>({})
+  const [name, setName] = useLocalStorageState<string>('palhas.draft.recipes.name', '')
+  const [yieldCount, setYieldCount] = useLocalStorageState<string>('palhas.draft.recipes.yieldCount', '')
+  const [ingredientQuantities, setIngredientQuantities] = useLocalStorageState<Record<string, string>>(
+    'palhas.draft.recipes.ingredientQuantities',
+    {},
+  )
+  const [salePriceDrafts, setSalePriceDrafts] = useLocalStorageState<Record<string, string>>(
+    'palhas.draft.recipes.salePriceDrafts',
+    {},
+  )
 
   const items: RecipeItem[] = ingredients
     .map((ingredient) => ({
@@ -323,6 +343,9 @@ function RecipesPage({
       name: name.trim(),
       items,
       yieldCount: recipeYield > 0 ? recipeYield : undefined,
+      producedCount: recipeYield > 0 ? recipeYield : 0,
+      soldCount: 0,
+      availableCount: recipeYield > 0 ? recipeYield : 0,
       totalCost: currentTotal,
       costPerUnit: recipeYield > 0 ? currentTotal / recipeYield : undefined,
       createdAt: new Date().toISOString(),
@@ -333,7 +356,15 @@ function RecipesPage({
     setIngredientQuantities({})
   }
 
-  const updateSalePrice = (recipeId: string, rawValue: string) => {
+  const updateSalePriceDraft = (recipeId: string, rawValue: string) => {
+    setSalePriceDrafts((current) => ({
+      ...current,
+      [recipeId]: rawValue,
+    }))
+  }
+
+  const saveSalePrice = (recipeId: string) => {
+    const rawValue = salePriceDrafts[recipeId] ?? ''
     const nextValue = rawValue.trim() === '' ? undefined : toNumber(rawValue)
     setRecipes((current) =>
       current.map((recipe) =>
@@ -345,6 +376,10 @@ function RecipesPage({
           : recipe,
       ),
     )
+    setSalePriceDrafts((current) => ({
+      ...current,
+      [recipeId]: nextValue?.toString() ?? '',
+    }))
   }
 
   return (
@@ -408,23 +443,56 @@ function RecipesPage({
 
       <article className="card">
         <h2>Receitas cadastradas</h2>
-        <ul className="plain-list">
+        <ul className="plain-list recipe-list">
           {recipes.map((recipe) => (
-            <li key={recipe.id}>
-              <div>
+            <li key={recipe.id} className="recipe-card-item">
+              <div className="recipe-main">
                 <strong>{recipe.name}</strong>
                 <small>
                   {recipe.yieldCount
                     ? `${recipe.yieldCount} un · ${formatBRL(recipe.costPerUnit ?? 0)}/un`
                     : 'Sem rendimento informado'}
                 </small>
+                <div className="recipe-stock-panel">
+                  <div className="recipe-stock-grid">
+                    <div>
+                      <small>Feitas</small>
+                      <strong>{getRecipeProducedCount(recipe)}</strong>
+                    </div>
+                    <div>
+                      <small>Vendidas</small>
+                      <strong>{getRecipeSoldCount(recipe)}</strong>
+                    </div>
+                    <div>
+                      <small>Faltam</small>
+                      <strong>{getRecipeAvailableCount(recipe)}</strong>
+                    </div>
+                  </div>
+                  <div className="recipe-stock-track">
+                    <div
+                      className="recipe-stock-fill"
+                      style={{
+                        width: `${
+                          getRecipeProducedCount(recipe) > 0
+                            ? (getRecipeAvailableCount(recipe) / getRecipeProducedCount(recipe)) * 100
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
                 <div className="projection-grid highlight-profit">
-                  <input
-                    value={recipe.salePricePerUnit?.toString() ?? ''}
-                    onChange={(event) => updateSalePrice(recipe.id, event.target.value)}
-                    placeholder="Preço de venda por unidade (R$)"
-                    inputMode="decimal"
-                  />
+                  <div className="price-editor-row">
+                    <input
+                      value={salePriceDrafts[recipe.id] ?? recipe.salePricePerUnit?.toString() ?? ''}
+                      onChange={(event) => updateSalePriceDraft(recipe.id, event.target.value)}
+                      placeholder="Preço de venda por unidade (R$)"
+                      inputMode="decimal"
+                    />
+                    <button type="button" onClick={() => saveSalePrice(recipe.id)}>
+                      Salvar preco
+                    </button>
+                  </div>
                   {(() => {
                     const projection = calcRecipeProjection(recipe)
                     return (
@@ -466,19 +534,29 @@ function FinancePage({
   setCashEntries,
   financialSummary,
   recipes,
+  setRecipes,
 }: {
   cashEntries: CashEntry[]
   setCashEntries: React.Dispatch<React.SetStateAction<CashEntry[]>>
   financialSummary: ReturnType<typeof calcFinancialSummary>
   recipes: Recipe[]
+  setRecipes: React.Dispatch<React.SetStateAction<Recipe[]>>
 }) {
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
-  const [type, setType] = useState<CashEntryType>('entrada')
-  const [soldTo, setSoldTo] = useState('')
-  const [description, setDescription] = useState('')
-  const [value, setValue] = useState('')
-  const [recipeTag, setRecipeTag] = useState('')
-  const [filterDate, setFilterDate] = useState('')
+  const [date, setDate] = useLocalStorageState<string>(
+    'palhas.draft.finance.date',
+    new Date().toISOString().slice(0, 10),
+  )
+  const [type, setType] = useLocalStorageState<CashEntryType>('palhas.draft.finance.type', 'entrada')
+  const [soldTo, setSoldTo] = useLocalStorageState<string>('palhas.draft.finance.soldTo', '')
+  const [description, setDescription] = useLocalStorageState<string>(
+    'palhas.draft.finance.description',
+    '',
+  )
+  const [value, setValue] = useLocalStorageState<string>('palhas.draft.finance.value', '')
+  const [recipeTag, setRecipeTag] = useLocalStorageState<string>('palhas.draft.finance.recipeTag', '')
+  const [soldQuantity, setSoldQuantity] = useLocalStorageState<string>('palhas.draft.finance.soldQuantity', '0')
+  const [filterDate, setFilterDate] = useLocalStorageState<string>('palhas.draft.finance.filterDate', '')
+  const [formError, setFormError] = useState('')
   const recipeTagSuggestions = useMemo(
     () => Array.from(new Set(recipes.map((recipe) => recipe.name))).sort((a, b) => a.localeCompare(b)),
     [recipes],
@@ -491,12 +569,21 @@ function FinancePage({
 
   const downloadCsv = () => {
     const entriesToExport = filteredEntries
-    const header = ['Data', 'Tipo', 'Para quem vendeu', 'Valor vendido', 'Descricao', 'Tag da receita']
+    const header = [
+      'Data',
+      'Tipo',
+      'Para quem vendeu',
+      'Valor vendido',
+      'Quantidade vendida',
+      'Descricao',
+      'Tag da receita',
+    ]
     const lines = entriesToExport.map((entry) => [
       entry.date,
       entry.type,
       entry.soldTo ?? entry.category ?? '',
       entry.value.toFixed(2).replace('.', ','),
+      String(entry.soldQuantity ?? 0),
       entry.description,
       entry.recipeTag ?? '',
     ])
@@ -519,7 +606,28 @@ function FinancePage({
   const saveEntry = (event: React.FormEvent) => {
     event.preventDefault()
     const numericValue = toNumber(value)
+    const quantity = toNumber(soldQuantity)
+    const selectedRecipe = recipes.find(
+      (recipe) => recipe.name.toLowerCase() === recipeTag.trim().toLowerCase(),
+    )
+    setFormError('')
     if (!date || !soldTo.trim() || numericValue <= 0) return
+    if (type === 'entrada' && quantity < 0) {
+      setFormError('Quantidade vendida nao pode ser negativa.')
+      return
+    }
+    if (type === 'entrada' && recipeTag.trim() && !selectedRecipe) {
+      setFormError('Receita nao encontrada para essa tag.')
+      return
+    }
+    if (type === 'entrada' && selectedRecipe) {
+      const available = getRecipeAvailableCount(selectedRecipe)
+      if (quantity > available) {
+        setFormError(`Quantidade vendida maior que o estoque disponivel (${available}).`)
+        return
+      }
+    }
+
     const entry: CashEntry = {
       id: newId(),
       date,
@@ -528,12 +636,54 @@ function FinancePage({
       description: description.trim(),
       value: numericValue,
       recipeTag: recipeTag.trim() || undefined,
+      soldQuantity: type === 'entrada' ? quantity : undefined,
     }
     setCashEntries((current) => [entry, ...current])
+    if (type === 'entrada' && selectedRecipe) {
+      setRecipes((current) =>
+        current.map((recipe) => {
+          if (recipe.id !== selectedRecipe.id) return recipe
+          const previousSold = getRecipeSoldCount(recipe)
+          const previousAvailable = getRecipeAvailableCount(recipe)
+          return {
+            ...recipe,
+            soldCount: previousSold + quantity,
+            availableCount: Math.max(previousAvailable - quantity, 0),
+          }
+        }),
+      )
+    }
     setSoldTo('')
     setDescription('')
     setValue('')
     setRecipeTag('')
+    setSoldQuantity('0')
+  }
+
+  const removeEntry = (entryId: string) => {
+    const entry = cashEntries.find((item) => item.id === entryId)
+    if (!entry) return
+    if (entry.type === 'entrada' && entry.recipeTag?.trim()) {
+      const recipe = recipes.find(
+        (item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase(),
+      )
+      if (recipe) {
+        const quantity = entry.soldQuantity ?? 0
+        setRecipes((current) =>
+          current.map((item) => {
+            if (item.id !== recipe.id) return item
+            const previousSold = getRecipeSoldCount(item)
+            const previousAvailable = getRecipeAvailableCount(item)
+            return {
+              ...item,
+              soldCount: Math.max(previousSold - quantity, 0),
+              availableCount: Math.max(previousAvailable + quantity, 0),
+            }
+          }),
+        )
+      }
+    }
+    setCashEntries((current) => current.filter((item) => item.id !== entryId))
   }
 
   return (
@@ -573,6 +723,12 @@ function FinancePage({
                 placeholder="Tag da receita (ex.: Palha Tradicional)"
                 list="recipe-tag-suggestions"
               />
+              <input
+                value={soldQuantity}
+                onChange={(event) => setSoldQuantity(event.target.value)}
+                placeholder="Quantidade de palhas vendidas (pode ser 0)"
+                inputMode="decimal"
+              />
               <datalist id="recipe-tag-suggestions">
                 {recipeTagSuggestions.map((suggestion) => (
                   <option key={suggestion} value={suggestion} />
@@ -580,6 +736,7 @@ function FinancePage({
               </datalist>
             </>
           )}
+          {formError && <small>{formError}</small>}
           <button type="submit">Salvar lançamento</button>
         </form>
       </article>
@@ -621,6 +778,7 @@ function FinancePage({
                   {entry.soldTo ?? entry.category ?? ''}
                   {entry.description ? ` - ${entry.description}` : ''}
                   {entry.recipeTag ? ` · Receita: ${entry.recipeTag}` : ''}
+                  {typeof entry.soldQuantity === 'number' ? ` · Qtd: ${entry.soldQuantity}` : ''}
                 </small>
               </div>
               <div className="row-actions">
@@ -628,9 +786,7 @@ function FinancePage({
                 <button
                   type="button"
                   className="danger"
-                  onClick={() =>
-                    setCashEntries((current) => current.filter((item) => item.id !== entry.id))
-                  }
+                  onClick={() => removeEntry(entry.id)}
                 >
                   Excluir
                 </button>
