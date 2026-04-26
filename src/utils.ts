@@ -50,7 +50,7 @@ export const getRecipeAvailableCount = (recipe: Recipe) => {
   return Math.max(getRecipeProducedCount(recipe) - getRecipeSoldCount(recipe), 0)
 }
 
-const resolveRecipeUnitCost = (recipe: Recipe) => {
+export const getRecipeUnitCost = (recipe: Recipe) => {
   if (typeof recipe.costPerUnit === 'number' && recipe.costPerUnit > 0) return recipe.costPerUnit
   const produced = getRecipeProducedCount(recipe)
   if (produced <= 0) return 0
@@ -73,7 +73,7 @@ export const calcFinancialSummary = (entries: CashEntry[], recipes: Recipe[]) =>
       const recipe = recipes.find(
         (item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase(),
       )
-      const unitCost = recipe ? resolveRecipeUnitCost(recipe) : 0
+      const unitCost = recipe ? getRecipeUnitCost(recipe) : 0
       return sum + unitCost * quantity + RESERVA_FIXA
     }, 0)
 
@@ -83,7 +83,7 @@ export const calcFinancialSummary = (entries: CashEntry[], recipes: Recipe[]) =>
     const recipe = recipes.find(
       (item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase(),
     )
-    const unitCost = recipe ? resolveRecipeUnitCost(recipe) : 0
+    const unitCost = recipe ? getRecipeUnitCost(recipe) : 0
     const guardar = unitCost * quantity + RESERVA_FIXA
     return sum + (entry.value - guardar)
   }, 0)

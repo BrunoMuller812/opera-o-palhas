@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import { useLocalStorageState } from './storage'
 import type { CashEntry, CashEntryType, Ingredient, Recipe, RecipeItem, UnitType } from './types'
@@ -9,6 +9,7 @@ import {
   calcUnitCost,
   formatBRL,
   getRecipeAvailableCount,
+  getRecipeUnitCost,
   getRecipeProducedCount,
   getRecipeSoldCount,
   toNumber,
@@ -554,13 +555,23 @@ function FinancePage({
   )
   const [value, setValue] = useLocalStorageState<string>('palhas.draft.finance.value', '')
   const [recipeTag, setRecipeTag] = useLocalStorageState<string>('palhas.draft.finance.recipeTag', '')
-  const [soldQuantity, setSoldQuantity] = useLocalStorageState<string>('palhas.draft.finance.soldQuantity', '0')
+  const [soldQuantity, setSoldQuantity] = useLocalStorageState<string>('palhas.draft.finance.soldQuantity', '')
   const [filterDate, setFilterDate] = useLocalStorageState<string>('palhas.draft.finance.filterDate', '')
   const [formError, setFormError] = useState('')
+  const quantity = toNumber(soldQuantity)
+  const normalizedRecipeTag = recipeTag.trim().toLowerCase()
+  const selectedRecipe = recipes.find((recipe) => recipe.name.toLowerCase() === normalizedRecipeTag)
+  const calculatedCostOutput =
+    type === 'saida' && selectedRecipe ? getRecipeUnitCost(selectedRecipe) * Math.max(quantity, 0) : null
   const recipeTagSuggestions = useMemo(
     () => Array.from(new Set(recipes.map((recipe) => recipe.name))).sort((a, b) => a.localeCompare(b)),
     [recipes],
   )
+
+  useEffect(() => {
+    if (calculatedCostOutput === null) return
+    setValue(calculatedCostOutput.toFixed(2).replace('.', ','))
+  }, [calculatedCostOutput, setValue])
 
   const filteredEntries = cashEntries.filter((entry) => {
     if (!filterDate) return true
@@ -605,25 +616,22 @@ function FinancePage({
 
   const saveEntry = (event: React.FormEvent) => {
     event.preventDefault()
-    const numericValue = toNumber(value)
-    const quantity = toNumber(soldQuantity)
-    const selectedRecipe = recipes.find(
-      (recipe) => recipe.name.toLowerCase() === recipeTag.trim().toLowerCase(),
-    )
+    const numericValue =
+      type === 'saida' && calculatedCostOutput !== null ? calculatedCostOutput : toNumber(value)
     setFormError('')
     if (!date || !soldTo.trim() || numericValue <= 0) return
-    if (type === 'entrada' && quantity < 0) {
-      setFormError('Quantidade vendida nao pode ser negativa.')
+    if ((type === 'entrada' || type === 'saida') && quantity < 0) {
+      setFormError('Quantidade de palhas nao pode ser negativa.')
       return
     }
-    if (type === 'entrada' && recipeTag.trim() && !selectedRecipe) {
+    if ((type === 'entrada' || type === 'saida') && recipeTag.trim() && !selectedRecipe) {
       setFormError('Receita nao encontrada para essa tag.')
       return
     }
-    if (type === 'entrada' && selectedRecipe) {
+    if ((type === 'entrada' || type === 'saida') && selectedRecipe) {
       const available = getRecipeAvailableCount(selectedRecipe)
       if (quantity > available) {
-        setFormError(`Quantidade vendida maior que o estoque disponivel (${available}).`)
+        setFormError(`Quantidade maior que o estoque disponivel (${available}).`)
         return
       }
     }
@@ -636,10 +644,10 @@ function FinancePage({
       description: description.trim(),
       value: numericValue,
       recipeTag: recipeTag.trim() || undefined,
-      soldQuantity: type === 'entrada' ? quantity : undefined,
+      soldQuantity: type === 'entrada' || type === 'saida' ? quantity : undefined,
     }
     setCashEntries((current) => [entry, ...current])
-    if (type === 'entrada' && selectedRecipe) {
+    if ((type === 'entrada' || type === 'saida') && selectedRecipe) {
       setRecipes((current) =>
         current.map((recipe) => {
           if (recipe.id !== selectedRecipe.id) return recipe
@@ -647,7 +655,7 @@ function FinancePage({
           const previousAvailable = getRecipeAvailableCount(recipe)
           return {
             ...recipe,
-            soldCount: previousSold + quantity,
+            soldCount: type === 'entrada' ? previousSold + quantity : previousSold,
             availableCount: Math.max(previousAvailable - quantity, 0),
           }
         }),
@@ -657,13 +665,13 @@ function FinancePage({
     setDescription('')
     setValue('')
     setRecipeTag('')
-    setSoldQuantity('0')
+    setSoldQuantity('')
   }
 
   const removeEntry = (entryId: string) => {
     const entry = cashEntries.find((item) => item.id === entryId)
     if (!entry) return
-    if (entry.type === 'entrada' && entry.recipeTag?.trim()) {
+    if ((entry.type === 'entrada' || entry.type === 'saida') && entry.recipeTag?.trim()) {
       const recipe = recipes.find(
         (item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase(),
       )
@@ -676,7 +684,8 @@ function FinancePage({
             const previousAvailable = getRecipeAvailableCount(item)
             return {
               ...item,
-              soldCount: Math.max(previousSold - quantity, 0),
+              soldCount:
+                entry.type === 'entrada' ? Math.max(previousSold - quantity, 0) : previousSold,
               availableCount: Math.max(previousAvailable + quantity, 0),
             }
           }),
@@ -707,7 +716,7 @@ function FinancePage({
           <input
             value={soldTo}
             onChange={(event) => setSoldTo(event.target.value)}
-            placeholder="Para quem vendeu"
+            placeholder={type === 'saida' ? 'Para quem foi dada' : 'Para quem vendeu'}
           />
           <input
             value={description}
@@ -717,10 +726,11 @@ function FinancePage({
           <input
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder="Valor vendido"
+            placeholder={type === 'saida' ? 'Valor da saida' : 'Valor vendido'}
             inputMode="decimal"
+            disabled={type === 'saida' && calculatedCostOutput !== null}
           />
-          {type === 'entrada' && (
+          {(type === 'entrada' || type === 'saida') && (
             <>
               <input
                 value={recipeTag}
@@ -731,9 +741,16 @@ function FinancePage({
               <input
                 value={soldQuantity}
                 onChange={(event) => setSoldQuantity(event.target.value)}
-                placeholder="Quantidade de palhas vendidas (pode ser 0)"
+                placeholder={
+                  type === 'saida'
+                    ? 'Quantidade de palhas dadas (pode ser 0)'
+                    : 'Quantidade de palhas vendidas (pode ser 0)'
+                }
                 inputMode="decimal"
               />
+              {type === 'saida' && calculatedCostOutput !== null && (
+                <small>Saida automatica por custo da receita: {formatBRL(calculatedCostOutput)}</small>
+              )}
               <datalist id="recipe-tag-suggestions">
                 {recipeTagSuggestions.map((suggestion) => (
                   <option key={suggestion} value={suggestion} />
