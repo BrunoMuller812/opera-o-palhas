@@ -24,6 +24,7 @@ export interface Recipe {
   yieldCount?: number
   producedCount?: number
   soldCount?: number
+  giftedCount?: number
   availableCount?: number
   totalCost: number
   costPerUnit?: number

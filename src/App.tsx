@@ -9,6 +9,7 @@ import {
   calcUnitCost,
   formatBRL,
   getRecipeAvailableCount,
+  getRecipeGiftedCount,
   getRecipeUnitCost,
   getRecipeProducedCount,
   getRecipeSoldCount,
@@ -346,6 +347,7 @@ function RecipesPage({
       yieldCount: recipeYield > 0 ? recipeYield : undefined,
       producedCount: recipeYield > 0 ? recipeYield : 0,
       soldCount: 0,
+      giftedCount: 0,
       availableCount: recipeYield > 0 ? recipeYield : 0,
       totalCost: currentTotal,
       costPerUnit: recipeYield > 0 ? currentTotal / recipeYield : undefined,
@@ -463,6 +465,10 @@ function RecipesPage({
                     <div>
                       <small>Vendidas</small>
                       <strong>{getRecipeSoldCount(recipe)}</strong>
+                    </div>
+                    <div>
+                      <small>Dadas</small>
+                      <strong>{getRecipeGiftedCount(recipe)}</strong>
                     </div>
                     <div>
                       <small>Faltam</small>
@@ -652,10 +658,12 @@ function FinancePage({
         current.map((recipe) => {
           if (recipe.id !== selectedRecipe.id) return recipe
           const previousSold = getRecipeSoldCount(recipe)
+          const previousGifted = getRecipeGiftedCount(recipe)
           const previousAvailable = getRecipeAvailableCount(recipe)
           return {
             ...recipe,
             soldCount: type === 'entrada' ? previousSold + quantity : previousSold,
+            giftedCount: type === 'saida' ? previousGifted + quantity : previousGifted,
             availableCount: Math.max(previousAvailable - quantity, 0),
           }
         }),
@@ -681,11 +689,14 @@ function FinancePage({
           current.map((item) => {
             if (item.id !== recipe.id) return item
             const previousSold = getRecipeSoldCount(item)
+            const previousGifted = getRecipeGiftedCount(item)
             const previousAvailable = getRecipeAvailableCount(item)
             return {
               ...item,
               soldCount:
                 entry.type === 'entrada' ? Math.max(previousSold - quantity, 0) : previousSold,
+              giftedCount:
+                entry.type === 'saida' ? Math.max(previousGifted - quantity, 0) : previousGifted,
               availableCount: Math.max(previousAvailable + quantity, 0),
             }
           }),
@@ -804,6 +815,7 @@ function FinancePage({
                 <small>
                   {entry.soldTo ?? entry.category ?? ''}
                   {entry.description ? ` - ${entry.description}` : ''}
+                  {entry.type === 'saida' ? ' · Palha dada' : ''}
                   {entry.recipeTag ? ` · Receita: ${entry.recipeTag}` : ''}
                   {typeof entry.soldQuantity === 'number' ? ` · Qtd: ${entry.soldQuantity}` : ''}
                 </small>
