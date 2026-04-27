@@ -71,24 +71,34 @@ export const calcFinancialSummary = (entries: CashEntry[], recipes: Recipe[]) =>
     .reduce((sum, entry) => sum + entry.value, 0)
   const saldoDisponivel = entrada - saida
 
-  const totalGuardar = entries.reduce((sum, entry) => {
-    if (!entry.recipeTag?.trim()) return sum
-    const recipe = recipes.find(
-      (item) => item.name.toLowerCase() === entry.recipeTag?.trim().toLowerCase(),
-    )
+  const guardarPorReceita = entries.reduce<Record<string, number>>((acc, entry) => {
+    const tag = entry.recipeTag?.trim().toLowerCase()
+    if (!tag) return acc
+
+    const recipe = recipes.find((item) => item.name.toLowerCase() === tag)
     const unitCost = recipe ? getRecipeUnitCost(recipe) : 0
     const quantity = entry.soldQuantity ?? 0
+    const current = acc[tag] ?? 0
 
     if (entry.type === 'entrada') {
-      return sum + unitCost * quantity + RESERVA_FIXA
+      acc[tag] = current + unitCost * quantity + RESERVA_FIXA
+      return acc
     }
 
     if (entry.type === 'saida') {
       // Palha dada: custo sai direto para o valor a guardar.
-      return sum + unitCost * quantity
+      acc[tag] = current + unitCost * quantity
+      return acc
     }
 
-    return sum
+    return acc
+  }, {})
+
+  const totalGuardar = Object.entries(guardarPorReceita).reduce((sum, [tag, acumulado]) => {
+    const recipe = recipes.find((item) => item.name.toLowerCase() === tag)
+    if (!recipe) return sum + acumulado
+    const limiteReceita = recipe.totalCost + RESERVA_FIXA
+    return sum + Math.min(acumulado, limiteReceita)
   }, 0)
 
   const lucroLiquido = entries.reduce((sum, entry) => {
